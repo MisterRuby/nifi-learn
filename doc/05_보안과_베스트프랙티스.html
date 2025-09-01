@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NiFi 보안과 베스트 프랙티스</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 35px;
+            font-size: 1.8em;
+        }
+        h3 {
+            color: #555;
+            margin-top: 25px;
+            font-size: 1.3em;
+        }
+        .security-layer {
+            background: linear-gradient(135deg, #ffe0b2 0%, #ffccbc 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+        }
+        .best-practice {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .warning {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .danger {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        .security-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s;
+        }
+        .security-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.1);
+        }
+        code {
+            background: #f4f4f4;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            line-height: 1.5;
+            margin: 20px 0;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding-left: 40px;
+            position: relative;
+        }
+        .checklist li::before {
+            content: "☑️";
+            position: absolute;
+            left: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .flow-diagram {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .security-level {
+            display: inline-block;
+            background: white;
+            padding: 15px 25px;
+            margin: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .level-high {
+            border: 3px solid #f44336;
+            background: #ffebee;
+        }
+        .level-medium {
+            border: 2px solid #ff9800;
+            background: #fff3e0;
+        }
+        .level-low {
+            border: 2px solid #4caf50;
+            background: #e8f5e9;
+        }
+        .performance-tip {
+            background: linear-gradient(135deg, #e1bee7 0%, #ce93d8 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>🔐 NiFi 보안과 베스트 프랙티스</h1>
+
+            <div class="security-layer">
+                <h2>🛡️ 보안 개요</h2>
+                <p>Apache NiFi는 엔터프라이즈급 보안을 제공하며, 다층 보안 아키텍처를 통해 
+                데이터와 시스템을 보호합니다. 인증, 인가, 암호화, 감사 로깅을 포함한 
+                포괄적인 보안 기능을 제공합니다.</p>
+            </div>
+
+            <h2>🔑 인증 (Authentication)</h2>
+
+            <div class="security-grid">
+                <div class="security-card">
+                    <h3>📜 인증서 기반 인증 (PKI)</h3>
+                    <pre><code># TLS Toolkit을 사용한 인증서 생성
+./bin/tls-toolkit.sh standalone \
+  -n 'localhost' \
+  -C 'CN=admin,OU=NIFI' \
+  -O \
+  -o ./security
+
+# nifi.properties 설정
+nifi.security.keystore=./conf/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=password
+nifi.security.truststore=./conf/truststore.jks
+nifi.security.truststoreType=JKS
+nifi.security.truststorePasswd=password</code></pre>
+                </div>
+
+                <div class="security-card">
+                    <h3>🔐 LDAP 인증</h3>
+                    <pre><code># login-identity-providers.xml
+&lt;provider&gt;
+    &lt;identifier&gt;ldap-provider&lt;/identifier&gt;
+    &lt;class&gt;LdapProvider&lt;/class&gt;
+    &lt;property name="Authentication Strategy"&gt;SIMPLE&lt;/property&gt;
+    &lt;property name="Manager DN"&gt;cn=admin,dc=example,dc=com&lt;/property&gt;
+    &lt;property name="Manager Password"&gt;password&lt;/property&gt;
+    &lt;property name="Url"&gt;ldap://ldap.example.com:389&lt;/property&gt;
+    &lt;property name="User Search Base"&gt;ou=users,dc=example,dc=com&lt;/property&gt;
+    &lt;property name="User Search Filter"&gt;uid={0}&lt;/property&gt;
+&lt;/provider&gt;</code></pre>
+                </div>
+
+                <div class="security-card">
+                    <h3>🎫 Kerberos 인증</h3>
+                    <pre><code># nifi.properties
+nifi.kerberos.krb5.file=/etc/krb5.conf
+nifi.kerberos.service.principal=nifi/hostname@REALM
+nifi.kerberos.service.keytab.location=/etc/security/nifi.keytab
+
+# login-identity-providers.xml
+&lt;provider&gt;
+    &lt;identifier&gt;kerberos-provider&lt;/identifier&gt;
+    &lt;class&gt;KerberosProvider&lt;/class&gt;
+    &lt;property name="Default Realm"&gt;EXAMPLE.COM&lt;/property&gt;
+    &lt;property name="Kerberos Config File"&gt;/etc/krb5.conf&lt;/property&gt;
+&lt;/provider&gt;</code></pre>
+                </div>
+
+                <div class="security-card">
+                    <h3>🌐 OpenID Connect / OAuth 2.0</h3>
+                    <pre><code># nifi.properties
+nifi.security.user.oidc.discovery.url=https://accounts.google.com/.well-known/openid-configuration
+nifi.security.user.oidc.client.id=your-client-id
+nifi.security.user.oidc.client.secret=your-client-secret
+nifi.security.user.oidc.preferred.jwsalgorithm=RS256</code></pre>
+                </div>
+            </div>
+
+            <h2>🔒 인가 (Authorization)</h2>
+
+            <div class="flow-diagram">
+                <h3>권한 계층 구조</h3>
+                <div style="margin: 20px 0;">
+                    <div class="security-level level-high">
+                        <strong>관리자 (Admin)</strong><br>
+                        <small>시스템 전체 관리</small>
+                    </div>
+                    <div class="security-level level-medium">
+                        <strong>데이터 스튜어드</strong><br>
+                        <small>플로우 수정 권한</small>
+                    </div>
+                    <div class="security-level level-low">
+                        <strong>뷰어 (Viewer)</strong><br>
+                        <small>읽기 전용</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="best-practice">
+                <h3>✅ 권한 설정 베스트 프랙티스</h3>
+                <pre><code># authorizations.xml - 세밀한 권한 제어
+&lt;authorizations&gt;
+    &lt;!-- 전역 정책 --&gt;
+    &lt;policy identifier="global-access" resource="/flow" action="R"&gt;
+        &lt;user identifier="viewer-user"/&gt;
+    &lt;/policy&gt;
+    
+    &lt;!-- Process Group별 권한 --&gt;
+    &lt;policy identifier="pg-modify" resource="/process-groups/uuid" action="W"&gt;
+        &lt;group identifier="developers"/&gt;
+    &lt;/policy&gt;
+    
+    &lt;!-- 컴포넌트별 권한 --&gt;
+    &lt;policy identifier="processor-access" resource="/processors/uuid" action="RW"&gt;
+        &lt;user identifier="admin-user"/&gt;
+    &lt;/policy&gt;
+&lt;/authorizations&gt;</code></pre>
+            </div>
+
+            <h2>🔐 데이터 암호화</h2>
+
+            <div class="security-layer">
+                <h3>전송 중 암호화 (Encryption in Transit)</h3>
+                <div class="warning">
+                    <strong>⚠️ NiFi 2.x 변경사항:</strong> NiFi 2.0부터 HTTPS가 기본값으로 설정됩니다. 
+                    HTTP는 명시적으로 설정하지 않는 한 비활성화되어 있습니다.
+                </div>
+                <pre><code># NiFi 2.x 기본 TLS/SSL 설정
+nifi.web.https.host=0.0.0.0
+nifi.web.https.port=8443  # 기본 포트
+nifi.web.http.port=       # 2.x부터 기본적으로 비활성화
+nifi.security.keystore=./conf/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=${keystore.password}
+nifi.security.truststore=./conf/truststore.jks
+nifi.security.truststoreType=JKS
+nifi.security.truststorePasswd=${truststore.password}
+
+# Site-to-Site 암호화 (2.x에서도 권장)
+nifi.remote.input.secure=true
+nifi.remote.input.socket.port=10443</code></pre>
+            </div>
+
+            <div class="security-layer">
+                <h3>저장 데이터 암호화 (Encryption at Rest)</h3>
+                <pre><code># 민감한 속성 암호화
+nifi.sensitive.props.key=your-encryption-key-here
+nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+
+# FlowFile 콘텐츠 암호화 프로세서
+EncryptContent Processor:
+  - Encryption Algorithm: AES_GCM
+  - Mode: Encrypt
+  - Key Derivation Function: BCRYPT
+  - Password: ${encryption.password}</code></pre>
+            </div>
+
+            <h2>📝 감사 로깅 (Audit Logging)</h2>
+
+            <div class="best-practice">
+                <h3>감사 로그 설정</h3>
+                <pre><code># logback.xml - 감사 로그 설정
+&lt;appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender"&gt;
+    &lt;file&gt;${org.apache.nifi.bootstrap.config.log.dir}/nifi-audit.log&lt;/file&gt;
+    &lt;rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy"&gt;
+        &lt;fileNamePattern&gt;${org.apache.nifi.bootstrap.config.log.dir}/nifi-audit_%d.log&lt;/fileNamePattern&gt;
+        &lt;maxHistory&gt;30&lt;/maxHistory&gt;
+    &lt;/rollingPolicy&gt;
+    &lt;encoder&gt;
+        &lt;pattern&gt;%date %level [%thread] %logger{40} - %msg%n&lt;/pattern&gt;
+    &lt;/encoder&gt;
+&lt;/appender&gt;
+
+&lt;logger name="org.apache.nifi.audit" level="INFO" additivity="false"&gt;
+    &lt;appender-ref ref="AUDIT_FILE"/&gt;
+&lt;/logger&gt;</code></pre>
+            </div>
+
+            <h2>🎯 베스트 프랙티스</h2>
+
+            <div class="security-grid">
+                <div class="security-card">
+                    <h3>🏗️ 아키텍처 설계</h3>
+                    <ul class="checklist">
+                        <li>Process Group을 모듈화하여 재사용성 향상</li>
+                        <li>Controller Service를 통한 설정 중앙화</li>
+                        <li>파라미터 컨텍스트로 환경별 설정 관리</li>
+                        <li>버전 관리를 위한 NiFi Registry 활용</li>
+                        <li>템플릿을 활용한 표준 패턴 정의</li>
+                    </ul>
+                </div>
+
+                <div class="security-card">
+                    <h3>⚡ 성능 최적화</h3>
+                    <ul class="checklist">
+                        <li>Record 기반 프로세서 우선 사용</li>
+                        <li>적절한 Back Pressure 임계값 설정</li>
+                        <li>Connection 큐 크기 최적화</li>
+                        <li>불필요한 Provenance 이벤트 비활성화</li>
+                        <li>Content Repository를 여러 디스크에 분산</li>
+                    </ul>
+                </div>
+
+                <div class="security-card">
+                    <h3>🔍 모니터링</h3>
+                    <ul class="checklist">
+                        <li>시스템 메트릭 실시간 모니터링</li>
+                        <li>Bulletin Board를 통한 에러 추적</li>
+                        <li>Reporting Task로 외부 모니터링 연동</li>
+                        <li>Data Provenance로 데이터 계보 추적</li>
+                        <li>정기적인 성능 리포트 생성</li>
+                    </ul>
+                </div>
+
+                <div class="security-card">
+                    <h3>🛡️ 보안 강화</h3>
+                    <ul class="checklist">
+                        <li>최소 권한 원칙 적용</li>
+                        <li>네트워크 세그멘테이션</li>
+                        <li>정기적인 보안 패치 적용</li>
+                        <li>민감한 데이터 마스킹</li>
+                        <li>보안 감사 로그 수집 및 분석</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>⚠️ 일반적인 실수와 해결책</h2>
+
+            <div class="danger">
+                <h3>❌ 피해야 할 실수들</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>실수</th>
+                            <th>문제점</th>
+                            <th>해결책</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>HTTP 사용</td>
+                            <td>데이터 노출 위험</td>
+                            <td>HTTPS 필수 사용 (2.x부터 기본값)</td>
+                        </tr>
+                        <tr>
+                            <td>기본 비밀번호 사용</td>
+                            <td>보안 취약점</td>
+                            <td>강력한 비밀번호 정책</td>
+                        </tr>
+                        <tr>
+                            <td>과도한 권한 부여</td>
+                            <td>권한 남용 가능</td>
+                            <td>역할 기반 접근 제어</td>
+                        </tr>
+                        <tr>
+                            <td>백업 미실시</td>
+                            <td>데이터 손실 위험</td>
+                            <td>정기적인 백업 스케줄</td>
+                        </tr>
+                        <tr>
+                            <td>로그 미확인</td>
+                            <td>문제 감지 지연</td>
+                            <td>자동 알림 설정</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>🔧 운영 관리</h2>
+
+            <div class="performance-tip">
+                <h3>📊 용량 계획 (Capacity Planning)</h3>
+                <pre><code># 리소스 요구사항 계산
+처리량 = 100,000 events/sec
+평균 이벤트 크기 = 1KB
+필요 처리 용량 = 100MB/sec
+
+# 권장 하드웨어 사양
+- CPU: 8+ cores
+- Memory: 16-32GB RAM
+- Storage: SSD 500GB+ (Content Repository)
+- Network: 10Gbps
+
+# JVM 힙 메모리 계산
+Heap = (FlowFiles × 평균크기) + (프로세서수 × 100MB) + 여유공간
+     = (100,000 × 1KB) + (50 × 100MB) + 2GB
+     = 8GB (최소)</code></pre>
+            </div>
+
+            <div class="best-practice">
+                <h3>🔄 백업 및 복구</h3>
+                <pre><code># 백업 스크립트
+#!/bin/bash
+BACKUP_DIR="/backup/nifi/$(date +%Y%m%d)"
+mkdir -p $BACKUP_DIR
+
+# 설정 파일 백업
+cp -r /opt/nifi/conf $BACKUP_DIR/
+cp -r /opt/nifi/flow.xml.gz $BACKUP_DIR/
+
+# FlowFile Repository 백업
+tar -czf $BACKUP_DIR/flowfile-repo.tar.gz /opt/nifi/flowfile_repository
+
+# 복구 절차
+1. NiFi 서비스 중지
+2. 백업 파일 복원
+3. 권한 설정 확인
+4. NiFi 서비스 시작
+5. 플로우 검증</code></pre>
+            </div>
+
+            <h2>📋 보안 체크리스트</h2>
+
+            <div class="security-layer">
+                <h3>🔐 프로덕션 배포 전 체크리스트</h3>
+                <ul class="checklist">
+                    <li>TLS/SSL 인증서 설정 완료 (NiFi 2.x는 기본 HTTPS)</li>
+                    <li>사용자 인증 메커니즘 구성</li>
+                    <li>세밀한 권한 정책 설정</li>
+                    <li>민감한 속성 암호화 키 설정</li>
+                    <li>감사 로깅 활성화</li>
+                    <li>네트워크 방화벽 규칙 설정</li>
+                    <li>백업 및 복구 절차 테스트</li>
+                    <li>모니터링 및 알림 설정</li>
+                    <li>보안 패치 적용</li>
+                    <li>침투 테스트 수행</li>
+                </ul>
+            </div>
+
+            <h2>📈 성능 튜닝 가이드</h2>
+
+            <div class="performance-tip">
+                <h3>최적화 전략</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>영역</th>
+                            <th>튜닝 포인트</th>
+                            <th>권장 값</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Thread Pool</td>
+                            <td>Timer Driven Thread Count</td>
+                            <td>10-50 (CPU 코어당 2-4)</td>
+                        </tr>
+                        <tr>
+                            <td>FlowFile</td>
+                            <td>Max FlowFiles per Connection</td>
+                            <td>10,000-100,000</td>
+                        </tr>
+                        <tr>
+                            <td>Repository</td>
+                            <td>Content Archive Max</td>
+                            <td>50% of disk space</td>
+                        </tr>
+                        <tr>
+                            <td>Provenance</td>
+                            <td>Max Storage Size</td>
+                            <td>10-50GB</td>
+                        </tr>
+                        <tr>
+                            <td>JVM</td>
+                            <td>Heap Size</td>
+                            <td>8-32GB</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="warning">
+                <h3>🔔 모니터링 알림 설정</h3>
+                <pre><code># Prometheus AlertManager 규칙
+groups:
+- name: nifi_alerts
+  rules:
+  - alert: HighMemoryUsage
+    expr: nifi_jvm_heap_used / nifi_jvm_heap_max > 0.9
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage on {{ $labels.instance }}"
+      
+  - alert: ProcessorError
+    expr: rate(nifi_processor_bulletins_total[5m]) > 10
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate in processor {{ $labels.processor }}"</code></pre>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

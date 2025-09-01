@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NiFi 아키텍처와 구성요소</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 35px;
+            font-size: 1.8em;
+        }
+        h3 {
+            color: #555;
+            margin-top: 25px;
+            font-size: 1.3em;
+        }
+        .architecture-diagram {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .component-box {
+            display: inline-block;
+            background: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-width: 150px;
+            transition: transform 0.3s;
+        }
+        .component-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .layer {
+            background: #f8f9fa;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+            border-radius: 8px;
+        }
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        .component-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s;
+        }
+        .component-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.1);
+        }
+        .component-card h3 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+        .flow-arrow {
+            display: inline-block;
+            margin: 0 15px;
+            color: #667eea;
+            font-size: 1.5em;
+        }
+        .highlight-box {
+            background: linear-gradient(120deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding-left: 40px;
+            position: relative;
+        }
+        .feature-list li::before {
+            content: "▶️";
+            position: absolute;
+            left: 15px;
+        }
+        .info-box {
+            background: #e7f5ff;
+            border: 2px solid #339af0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background: #fff4e6;
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>🏗️ NiFi 아키텍처와 구성요소</h1>
+
+            <div class="highlight-box">
+                <h2>📐 전체 아키텍처 개요</h2>
+                <p>Apache NiFi는 Flow-Based Programming(FBP) 패러다임을 기반으로 설계된 분산 데이터 플로우 시스템입니다. 
+                각 구성요소는 독립적으로 작동하며, 웹 기반 UI를 통해 실시간으로 관리됩니다.</p>
+            </div>
+
+            <h2>🎨 NiFi 시스템 아키텍처</h2>
+            <div class="architecture-diagram">
+                <h3>계층별 아키텍처 구조</h3>
+                
+                <div class="layer" style="background: #e3f2fd;">
+                    <h4>👤 사용자 인터페이스 계층</h4>
+                    <div class="component-box">Web UI</div>
+                    <span class="flow-arrow">↔</span>
+                    <div class="component-box">REST API</div>
+                    <span class="flow-arrow">↔</span>
+                    <div class="component-box">CLI Tools</div>
+                </div>
+
+                <div class="layer" style="background: #f3e5f5;">
+                    <h4>🎛️ 플로우 제어 계층</h4>
+                    <div class="component-box">Flow Controller</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="component-box">Process Scheduler</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="component-box">Thread Pool</div>
+                </div>
+
+                <div class="layer" style="background: #e8f5e9;">
+                    <h4>⚙️ 처리 계층</h4>
+                    <div class="component-box">Processors</div>
+                    <span class="flow-arrow">↔</span>
+                    <div class="component-box">Controller Services</div>
+                    <span class="flow-arrow">↔</span>
+                    <div class="component-box">Reporting Tasks</div>
+                </div>
+
+                <div class="layer" style="background: #fff3e0;">
+                    <h4>💾 저장소 계층</h4>
+                    <div class="component-box">Content Repository</div>
+                    <div class="component-box">FlowFile Repository</div>
+                    <div class="component-box">Provenance Repository</div>
+                </div>
+            </div>
+
+            <h2>🔧 핵심 구성요소 상세</h2>
+            
+            <div class="component-grid">
+                <div class="component-card">
+                    <h3>📄 FlowFile</h3>
+                    <p><strong>정의:</strong> NiFi에서 처리되는 데이터의 기본 단위</p>
+                    <ul class="feature-list">
+                        <li><strong>Content:</strong> 실제 데이터 페이로드</li>
+                        <li><strong>Attributes:</strong> 키-값 쌍의 메타데이터</li>
+                        <li><strong>UUID:</strong> 고유 식별자</li>
+                        <li><strong>Lineage:</strong> 데이터 계보 정보</li>
+                    </ul>
+                    <div class="info-box">
+                        <strong>💡 특징:</strong> FlowFile은 불변(immutable)이며, 
+                        변경이 필요할 경우 새로운 FlowFile이 생성됩니다.
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <h3>⚙️ Processor</h3>
+                    <p><strong>정의:</strong> 데이터를 처리하는 실행 가능한 컴포넌트</p>
+                    <ul class="feature-list">
+                        <li>데이터 수집 (GetFile, GetHTTP, ListenTCP)</li>
+                        <li>데이터 변환 (ConvertRecord, ReplaceText)</li>
+                        <li>데이터 라우팅 (RouteOnAttribute, RouteOnContent)</li>
+                        <li>데이터 전송 (PutFile, PostHTTP, PublishKafka)</li>
+                    </ul>
+                    <pre><code># Processor 설정 예시
+Processor Name: GetFile
+Properties:
+  - Input Directory: /data/input
+  - File Filter: .*\.csv
+  - Keep Source File: false
+  - Recurse Subdirectories: true</code></pre>
+                </div>
+
+                <div class="component-card">
+                    <h3>🔗 Connection</h3>
+                    <p><strong>정의:</strong> Processor 간 데이터 전달 큐</p>
+                    <ul class="feature-list">
+                        <li><strong>Queue:</strong> FlowFile 대기열</li>
+                        <li><strong>Prioritization:</strong> 처리 우선순위 설정</li>
+                        <li><strong>Back Pressure:</strong> 흐름 제어 메커니즘</li>
+                        <li><strong>Expiration:</strong> 만료 시간 설정</li>
+                    </ul>
+                    <div class="warning-box">
+                        <strong>⚠️ 주의:</strong> Back Pressure 설정을 통해 메모리 오버플로우를 방지하세요.
+                        기본값: 10,000개 또는 1GB
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <h3>📦 Process Group</h3>
+                    <p><strong>정의:</strong> 관련 컴포넌트들을 그룹화하는 컨테이너</p>
+                    <ul class="feature-list">
+                        <li>플로우 모듈화 및 재사용</li>
+                        <li>Input/Output 포트를 통한 데이터 교환</li>
+                        <li>변수 범위(Variable Scope) 관리</li>
+                        <li>독립적인 버전 관리</li>
+                    </ul>
+                    <div class="info-box">
+                        <strong>💡 활용:</strong> Process Group을 템플릿으로 저장하여 
+                        재사용 가능한 플로우 패턴을 만들 수 있습니다.
+                    </div>
+                </div>
+
+                <div class="component-card">
+                    <h3>🎛️ Controller Service</h3>
+                    <p><strong>정의:</strong> 여러 Processor가 공유하는 설정 및 리소스</p>
+                    <ul class="feature-list">
+                        <li>DBCPConnectionPool (데이터베이스 연결)</li>
+                        <li>DistributedMapCacheService (캐시 서비스)</li>
+                        <li>SSLContextService (SSL 설정)</li>
+                        <li>RecordReader/Writer (데이터 포맷 처리)</li>
+                    </ul>
+                    <pre><code># Controller Service 설정 예시
+Service: DBCPConnectionPool
+Properties:
+  - Database URL: jdbc:postgresql://localhost:5432/mydb
+  - Driver Class: org.postgresql.Driver
+  - Max Total Connections: 50
+  - Max Idle: 10</code></pre>
+                </div>
+
+                <div class="component-card">
+                    <h3>📊 Reporting Task</h3>
+                    <p><strong>정의:</strong> 시스템 모니터링 및 리포팅 컴포넌트</p>
+                    <ul class="feature-list">
+                        <li>시스템 메트릭 수집</li>
+                        <li>외부 모니터링 시스템 연동</li>
+                        <li>알림 및 경고 전송</li>
+                        <li>성능 분석 리포트 생성</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h2>💾 저장소 시스템</h2>
+            
+            <div class="architecture-diagram">
+                <h3>NiFi 저장소 아키텍처</h3>
+                
+                <div class="component-grid">
+                    <div class="component-card">
+                        <h3>📁 Content Repository</h3>
+                        <p>FlowFile의 실제 콘텐츠를 저장하는 저장소</p>
+                        <ul>
+                            <li>불변 데이터 저장</li>
+                            <li>Copy-on-Write 전략</li>
+                            <li>자동 아카이빙 지원</li>
+                            <li>다중 디렉토리 분산 저장</li>
+                        </ul>
+                        <pre><code># nifi.properties 설정
+nifi.content.repository.directory.default=./content_repository
+nifi.content.repository.archive.enabled=true
+nifi.content.repository.archive.max.retention.period=12 hours</code></pre>
+                    </div>
+
+                    <div class="component-card">
+                        <h3>🗂️ FlowFile Repository</h3>
+                        <p>FlowFile 메타데이터와 상태를 저장</p>
+                        <ul>
+                            <li>Write-Ahead-Log (WAL) 구조</li>
+                            <li>트랜잭션 지원</li>
+                            <li>체크포인트 메커니즘</li>
+                            <li>빠른 복구 지원</li>
+                        </ul>
+                        <pre><code># nifi.properties 설정
+nifi.flowfile.repository.directory=./flowfile_repository
+nifi.flowfile.repository.checkpoint.interval=2 min
+nifi.queue.swap.threshold=20000</code></pre>
+                    </div>
+
+                    <div class="component-card">
+                        <h3>📈 Provenance Repository</h3>
+                        <p>데이터 계보 및 이벤트 추적 정보 저장</p>
+                        <ul>
+                            <li>모든 FlowFile 이벤트 기록</li>
+                            <li>데이터 계보 추적</li>
+                            <li>감사(Audit) 로그</li>
+                            <li>검색 가능한 인덱스</li>
+                        </ul>
+                        <pre><code># nifi.properties 설정
+nifi.provenance.repository.directory.default=./provenance_repository
+nifi.provenance.repository.max.storage.size=10 GB
+nifi.provenance.repository.rollover.time=5 mins</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <h2>🔄 데이터 플로우 실행 모델</h2>
+            
+            <div class="info-box">
+                <h3>스레드 관리 및 스케줄링</h3>
+                <p>NiFi는 효율적인 리소스 활용을 위해 스레드 풀과 스케줄러를 사용합니다:</p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>구성 요소</th>
+                        <th>역할</th>
+                        <th>설정 가능 항목</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Timer-Driven Thread Pool</strong></td>
+                        <td>정기적으로 실행되는 Processor 처리</td>
+                        <td>최대 스레드 수, 실행 주기</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Event-Driven Thread Pool</strong></td>
+                        <td>이벤트 기반 Processor 처리</td>
+                        <td>최대 스레드 수</td>
+                    </tr>
+                    <tr>
+                        <td><strong>CRON-Driven Scheduler</strong></td>
+                        <td>CRON 표현식 기반 스케줄링</td>
+                        <td>CRON 표현식</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Administrative Thread Pool</strong></td>
+                        <td>시스템 관리 작업</td>
+                        <td>최대 스레드 수</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>🌐 클러스터 구성 요소</h2>
+            
+            <div class="architecture-diagram">
+                <h3>NiFi 클러스터 아키텍처</h3>
+                
+                <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; margin: 30px 0;">
+                    <div class="component-box" style="background: #bbdefb;">
+                        <strong>🎯 Primary Node</strong><br>
+                        <small>클러스터 조정자</small>
+                    </div>
+                    <span class="flow-arrow">↔</span>
+                    <div class="component-box" style="background: #c8e6c9;">
+                        <strong>🔧 Worker Nodes</strong><br>
+                        <small>실제 처리 노드</small>
+                    </div>
+                    <span class="flow-arrow">↔</span>
+                    <div class="component-box" style="background: #ffccbc;">
+                        <strong>📡 ZooKeeper</strong><br>
+                        <small>상태 동기화</small>
+                    </div>
+                </div>
+
+                <ul class="feature-list">
+                    <li><strong>Zero-Leader Clustering:</strong> 모든 노드가 동등한 권한</li>
+                    <li><strong>자동 로드 밸런싱:</strong> 작업 부하 자동 분산</li>
+                    <li><strong>Site-to-Site 프로토콜:</strong> 클러스터 간 데이터 전송</li>
+                    <li><strong>자동 페일오버:</strong> 노드 장애 시 자동 복구</li>
+                </ul>
+            </div>
+
+            <h2>🛡️ 보안 아키텍처</h2>
+            
+            <div class="component-grid">
+                <div class="component-card">
+                    <h3>🔐 인증 (Authentication)</h3>
+                    <ul>
+                        <li>Client Certificate (PKI)</li>
+                        <li>Username/Password</li>
+                        <li>Kerberos</li>
+                        <li>OpenID Connect</li>
+                        <li>SAML</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>🔑 인가 (Authorization)</h3>
+                    <ul>
+                        <li>세밀한 접근 제어 (Fine-grained Access Control)</li>
+                        <li>사용자/그룹 기반 권한</li>
+                        <li>컴포넌트별 권한 설정</li>
+                        <li>데이터 레벨 보안</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>🔒 암호화</h3>
+                    <ul>
+                        <li>TLS/SSL 통신 암호화</li>
+                        <li>저장 데이터 암호화</li>
+                        <li>민감한 속성 암호화</li>
+                        <li>설정 파일 암호화</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

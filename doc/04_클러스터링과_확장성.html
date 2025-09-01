@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NiFi 클러스터링과 확장성</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+            font-size: 2.5em;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 35px;
+            font-size: 1.8em;
+        }
+        h3 {
+            color: #555;
+            margin-top: 25px;
+            font-size: 1.3em;
+        }
+        .cluster-diagram {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        .node-box {
+            display: inline-block;
+            background: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-width: 150px;
+            transition: transform 0.3s;
+        }
+        .node-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .primary-node {
+            border: 3px solid #4caf50;
+            background: #e8f5e9;
+        }
+        .worker-node {
+            border: 2px solid #2196f3;
+        }
+        .zookeeper-node {
+            border: 2px solid #ff9800;
+            background: #fff3e0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            line-height: 1.5;
+            margin: 20px 0;
+        }
+        .config-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-left: 5px solid #667eea;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        .feature-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.1);
+        }
+        .arrow {
+            font-size: 1.5em;
+            color: #667eea;
+            margin: 0 10px;
+        }
+        .info-box {
+            background: #e7f5ff;
+            border: 2px solid #339af0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background: #fff4e6;
+            border: 2px solid #ff9800;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success-box {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .scaling-strategy {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 2em;
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>🌐 NiFi 클러스터링과 확장성</h1>
+
+            <div class="info-box">
+                <h2>📊 클러스터링 개요</h2>
+                <p>Apache NiFi는 Zero-Leader Clustering 아키텍처를 채택하여 모든 노드가 동등한 권한을 가지며, 
+                자동 로드 밸런싱과 페일오버를 지원합니다. 클러스터는 수평 확장이 가능하며, 
+                노드 추가/제거가 동적으로 가능합니다.</p>
+            </div>
+
+            <h2>🏗️ 클러스터 아키텍처</h2>
+            
+            <div class="cluster-diagram">
+                <h3>NiFi 클러스터 구성도</h3>
+                
+                <div style="margin: 30px 0;">
+                    <div class="node-box primary-node">
+                        <strong>🎯 Primary Node</strong><br>
+                        <small>Cluster Coordinator</small><br>
+                        <code>nifi-01:8443</code>
+                    </div>
+                    <span class="arrow">↔</span>
+                    <div style="display: inline-block; vertical-align: top;">
+                        <div class="node-box worker-node">
+                            <strong>💻 Node 2</strong><br>
+                            <small>Worker Node</small><br>
+                            <code>nifi-02:8443</code>
+                        </div>
+                        <div class="node-box worker-node">
+                            <strong>💻 Node 3</strong><br>
+                            <small>Worker Node</small><br>
+                            <code>nifi-03:8443</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <div class="node-box zookeeper-node">
+                        <strong>📡 ZooKeeper Ensemble</strong><br>
+                        <small>Coordination Service</small><br>
+                        <code>zk1:2181, zk2:2181, zk3:2181</code>
+                    </div>
+                </div>
+            </div>
+
+            <h2>⚙️ 클러스터 설정</h2>
+
+            <div class="config-section">
+                <h3>1. ZooKeeper 설정</h3>
+                <pre><code># zoo.cfg
+tickTime=2000
+dataDir=/var/zookeeper/data
+clientPort=2181
+initLimit=10
+syncLimit=5
+server.1=zk1:2888:3888
+server.2=zk2:2888:3888
+server.3=zk3:2888:3888
+
+# ZooKeeper 시작
+./zkServer.sh start</code></pre>
+            </div>
+
+            <div class="config-section">
+                <h3>2. NiFi 클러스터 설정 (nifi.properties)</h3>
+                <pre><code># 클러스터 활성화
+nifi.cluster.is.node=true
+nifi.cluster.node.address=nifi-01.example.com
+nifi.cluster.node.protocol.port=11443
+nifi.cluster.node.load.balance.port=6342
+
+# ZooKeeper 연결
+nifi.zookeeper.connect.string=zk1:2181,zk2:2181,zk3:2181
+nifi.zookeeper.root.node=/nifi
+
+# 클러스터 플로우 선출
+nifi.cluster.flow.election.max.wait.time=5 mins
+
+# Site-to-Site 설정
+nifi.remote.input.host=nifi-01.example.com
+nifi.remote.input.secure=true
+nifi.remote.input.socket.port=10443</code></pre>
+            </div>
+
+            <div class="config-section">
+                <h3>3. 상태 관리 설정 (state-management.xml)</h3>
+                <pre><code>&lt;stateManagement&gt;
+    &lt;local-provider&gt;
+        &lt;id&gt;local-provider&lt;/id&gt;
+        &lt;class&gt;org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider&lt;/class&gt;
+        &lt;property name="Directory"&gt;./state/local&lt;/property&gt;
+    &lt;/local-provider&gt;
+    
+    &lt;cluster-provider&gt;
+        &lt;id&gt;zk-provider&lt;/id&gt;
+        &lt;class&gt;org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider&lt;/class&gt;
+        &lt;property name="Connect String"&gt;zk1:2181,zk2:2181,zk3:2181&lt;/property&gt;
+        &lt;property name="Root Node"&gt;/nifi&lt;/property&gt;
+    &lt;/cluster-provider&gt;
+&lt;/stateManagement&gt;</code></pre>
+            </div>
+
+            <h2>🚀 확장성 전략</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>📈 수평 확장 (Scale Out)</h3>
+                    <p><strong>노드 추가를 통한 확장</strong></p>
+                    <ul>
+                        <li>처리 용량 선형 증가</li>
+                        <li>자동 로드 밸런싱</li>
+                        <li>무중단 노드 추가</li>
+                        <li>최대 수백 개 노드 지원</li>
+                    </ul>
+                    <div class="success-box">
+                        <strong>권장 사항:</strong> 초기 3-5개 노드로 시작하여 필요에 따라 확장
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📊 수직 확장 (Scale Up)</h3>
+                    <p><strong>노드 리소스 증설</strong></p>
+                    <ul>
+                        <li>CPU 코어 추가</li>
+                        <li>메모리 증설 (8GB → 32GB+)</li>
+                        <li>SSD 스토리지 업그레이드</li>
+                        <li>네트워크 대역폭 증가</li>
+                    </ul>
+                    <pre><code># JVM 힙 메모리 설정
+java.arg.2=-Xms8g
+java.arg.3=-Xmx8g</code></pre>
+                </div>
+            </div>
+
+            <h2>🔄 로드 밸런싱</h2>
+
+            <div class="scaling-strategy">
+                <h3>Connection 로드 밸런싱 전략</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>전략</th>
+                            <th>설명</th>
+                            <th>사용 사례</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Round Robin</strong></td>
+                            <td>순환 방식으로 균등 분배</td>
+                            <td>일반적인 부하 분산</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Single Node</strong></td>
+                            <td>하나의 노드에만 전송</td>
+                            <td>순서 보장이 필요한 경우</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Partition by Attribute</strong></td>
+                            <td>속성 기반 파티셔닝</td>
+                            <td>데이터 지역성 보장</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Do Not Load Balance</strong></td>
+                            <td>로드 밸런싱 비활성화</td>
+                            <td>로컬 처리만 필요한 경우</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <pre><code># Connection 로드 밸런싱 설정 예시
+Load Balance Strategy: Round Robin
+Load Balance Compression: Do not compress
+Load Balance Max Thread Count: 8</code></pre>
+            </div>
+
+            <h2>📡 Site-to-Site 프로토콜</h2>
+
+            <div class="info-box">
+                <h3>Site-to-Site(S2S) 개요</h3>
+                <p>NiFi 인스턴스 간 안전하고 효율적인 데이터 전송을 위한 프로토콜</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🔒 Push 방식</h3>
+                    <pre><code># Remote Process Group 설정
+URLs: https://remote-nifi:8443/nifi
+Transport Protocol: RAW
+Proxy Host: (blank)
+
+# Input Port 설정
+Port Name: FromClusterA
+Concurrent Tasks: 5</code></pre>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📥 Pull 방식</h3>
+                    <pre><code># Output Port 설정
+Port Name: ToClusterB
+Concurrent Tasks: 5
+
+# Remote Process Group에서 Pull
+URLs: https://source-nifi:8443/nifi
+Transport Protocol: HTTP</code></pre>
+                </div>
+            </div>
+
+            <h2>🔧 클러스터 관리</h2>
+
+            <div class="config-section">
+                <h3>노드 추가 절차</h3>
+                <pre><code># 1. 새 노드에 NiFi 설치
+tar -xzf nifi-1.23.2-bin.tar.gz
+
+# 2. 클러스터 설정 복사
+cp cluster-node/conf/nifi.properties new-node/conf/
+
+# 3. 노드별 고유 설정 수정
+nifi.cluster.node.address=new-node.example.com
+nifi.web.https.host=new-node.example.com
+
+# 4. 인증서 설정
+./bin/tls-toolkit.sh standalone \
+  -n 'new-node.example.com' \
+  -C 'CN=admin,OU=NIFI'
+
+# 5. NiFi 시작
+./bin/nifi.sh start
+
+# 6. 클러스터 참여 확인
+curl -k https://new-node:8443/nifi-api/controller/cluster</code></pre>
+            </div>
+
+            <div class="config-section">
+                <h3>노드 제거 절차</h3>
+                <pre><code># 1. 노드 연결 해제
+PUT /nifi-api/controller/cluster/nodes/{id}
+{
+  "node": {
+    "nodeId": "node-id",
+    "status": "DISCONNECTING"
+  }
+}
+
+# 2. 노드에서 NiFi 중지
+./bin/nifi.sh stop
+
+# 3. 클러스터에서 노드 제거
+DELETE /nifi-api/controller/cluster/nodes/{id}</code></pre>
+            </div>
+
+            <h2>📊 모니터링 및 메트릭</h2>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">95%</div>
+                    <p><strong>클러스터 가용성</strong></p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">10GB/s</div>
+                    <p><strong>처리량</strong></p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">< 100ms</div>
+                    <p><strong>레이턴시</strong></p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">8 Nodes</div>
+                    <p><strong>활성 노드</strong></p>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>모니터링 설정</h3>
+                <pre><code># Reporting Task 설정
+Name: MonitorMemory
+Type: org.apache.nifi.reporting.ambari.AmbariReportingTask
+Scheduling Strategy: Timer Driven
+Run Schedule: 60 sec
+
+# Prometheus 메트릭 수집
+PrometheusReportingTask:
+  - Port: 9092
+  - Metrics Prefix: nifi_
+  - Instance ID: ${hostname()}
+
+# 시스템 진단
+GET /nifi-api/system-diagnostics
+{
+  "systemDiagnostics": {
+    "aggregateSnapshot": {
+      "totalHeap": "8 GB",
+      "usedHeap": "4.2 GB",
+      "heapUtilization": "52.5%",
+      "totalThreads": 150,
+      "eventDrivenThreads": 10
+    }
+  }
+}</code></pre>
+            </div>
+
+            <h2>⚡ 성능 최적화</h2>
+
+            <div class="scaling-strategy">
+                <h3>클러스터 성능 튜닝</h3>
+                
+                <div class="warning-box">
+                    <h4>⚠️ 주요 튜닝 포인트</h4>
+                    <ul>
+                        <li><strong>Thread Pool 크기:</strong> CPU 코어 수 × 2-4</li>
+                        <li><strong>Connection 큐 크기:</strong> 메모리 용량에 따라 조정</li>
+                        <li><strong>FlowFile Repository:</strong> SSD 사용 권장</li>
+                        <li><strong>Content Repository:</strong> 다중 디렉토리로 I/O 분산</li>
+                    </ul>
+                </div>
+
+                <pre><code># 성능 최적화 설정
+# Thread Pools
+nifi.flow.engine.threads=30
+nifi.administrative.threads=10
+
+# Repository 최적화
+nifi.flowfile.repository.checkpoint.interval=2 min
+nifi.content.repository.archive.enabled=false
+nifi.provenance.repository.rollover.time=5 mins
+
+# 네트워크 최적화
+nifi.cluster.node.connection.timeout=5 sec
+nifi.cluster.node.read.timeout=5 sec
+nifi.cluster.firewall.file=
+
+# JVM 튜닝
+java.arg.8=-XX:+UseG1GC
+java.arg.9=-XX:MaxGCPauseMillis=200
+java.arg.10=-XX:G1ReservePercent=20</code></pre>
+            </div>
+
+            <h2>🛡️ 고가용성 (HA) 구성</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🔄 자동 페일오버</h3>
+                    <ul>
+                        <li>노드 장애 자동 감지</li>
+                        <li>작업 자동 재할당</li>
+                        <li>Primary Node 자동 선출</li>
+                        <li>데이터 손실 방지</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <h3>💾 데이터 복제</h3>
+                    <ul>
+                        <li>FlowFile 복제본 유지</li>
+                        <li>상태 정보 동기화</li>
+                        <li>설정 자동 백업</li>
+                        <li>Provenance 데이터 복제</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="success-box">
+                <h3>✅ 클러스터 구성 베스트 프랙티스</h3>
+                <ul>
+                    <li>최소 3개 노드로 클러스터 구성 (쿼럼 유지)</li>
+                    <li>ZooKeeper는 홀수 개 노드로 구성 (3, 5, 7)</li>
+                    <li>노드 간 전용 네트워크 구성</li>
+                    <li>정기적인 백업 및 복구 테스트</li>
+                    <li>모니터링 및 알림 시스템 구축</li>
+                    <li>로드 밸런서를 통한 트래픽 분산</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

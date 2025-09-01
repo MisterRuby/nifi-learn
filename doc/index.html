@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apache NiFi 학습 가이드</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 0;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.2em;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .navigation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .nav-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        
+        .nav-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .nav-card h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        
+        .nav-card p {
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .topics {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .topics li {
+            padding: 8px 0;
+            color: #95a5a6;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .topics li::before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+        
+        .intro-section {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .intro-section h2 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        
+        .intro-section p {
+            color: #7f8c8d;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .feature-highlights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .feature-box {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .feature-box h3 {
+            color: #34495e;
+            margin-bottom: 10px;
+        }
+        
+        .feature-box p {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .footer {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 0;
+            text-align: center;
+            margin-top: 60px;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .footer p {
+            color: #7f8c8d;
+        }
+        
+        .quick-links {
+            margin-top: 20px;
+        }
+        
+        .quick-links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s;
+        }
+        
+        .quick-links a:hover {
+            color: #764ba2;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .navigation-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-highlights {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Apache NiFi 학습 가이드</h1>
+        <p>데이터 플로우 자동화를 위한 완벽한 가이드</p>
+    </div>
+    
+    <div class="container">
+        <div class="intro-section">
+            <h2>📚 학습 가이드 소개</h2>
+            <p>
+                이 학습 가이드는 Apache NiFi의 핵심 개념부터 고급 기능까지 체계적으로 다룹니다.
+                실무에서 바로 활용할 수 있는 예제와 베스트 프랙티스를 제공하여,
+                효율적인 데이터 플로우 시스템을 구축할 수 있도록 도와드립니다.
+            </p>
+            <p>
+                각 문서는 시각적 다이어그램과 코드 예제를 포함하여 이해를 돕고,
+                단계별로 학습할 수 있도록 구성되었습니다.
+            </p>
+            
+            <div class="feature-highlights">
+                <div class="feature-box">
+                    <div class="feature-icon">🎯</div>
+                    <h3>체계적 구성</h3>
+                    <p>기초부터 고급까지 단계별 학습</p>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-icon">💡</div>
+                    <h3>실전 예제</h3>
+                    <p>실무 적용 가능한 코드와 설정</p>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-icon">🎨</div>
+                    <h3>시각적 설명</h3>
+                    <p>다이어그램과 플로우 차트</p>
+                </div>
+                <div class="feature-box">
+                    <div class="feature-icon">🔧</div>
+                    <h3>베스트 프랙티스</h3>
+                    <p>검증된 설계 패턴과 최적화</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="navigation-grid">
+            <a href="01_Apache_NiFi_개요.html" class="nav-card">
+                <span class="card-number">1</span>
+                <h2>Apache NiFi 개요</h2>
+                <p>NiFi의 기본 개념과 핵심 특징을 이해하고, 데이터 플로우 자동화의 기초를 학습합니다.</p>
+                <ul class="topics">
+                    <li>NiFi 소개 및 핵심 개념</li>
+                    <li>주요 특징과 사용 사례</li>
+                    <li>다른 도구와의 비교</li>
+                    <li>빠른 시작 가이드</li>
+                </ul>
+            </a>
+            
+            <a href="02_NiFi_아키텍처와_구성요소.html" class="nav-card">
+                <span class="card-number">2</span>
+                <h2>아키텍처와 구성요소</h2>
+                <p>NiFi의 내부 아키텍처와 핵심 구성요소들의 역할과 동작 방식을 상세히 살펴봅니다.</p>
+                <ul class="topics">
+                    <li>시스템 아키텍처</li>
+                    <li>FlowFile과 Processor</li>
+                    <li>저장소 시스템</li>
+                    <li>스레드 관리 및 스케줄링</li>
+                </ul>
+            </a>
+            
+            <a href="03_프로세서와_플로우_설계.html" class="nav-card">
+                <span class="card-number">3</span>
+                <h2>프로세서와 플로우 설계</h2>
+                <p>다양한 프로세서의 사용법과 효과적인 데이터 플로우 설계 패턴을 학습합니다.</p>
+                <ul class="topics">
+                    <li>주요 프로세서 카테고리</li>
+                    <li>플로우 설계 패턴</li>
+                    <li>Expression Language</li>
+                    <li>성능 최적화 팁</li>
+                </ul>
+            </a>
+            
+            <a href="04_클러스터링과_확장성.html" class="nav-card">
+                <span class="card-number">4</span>
+                <h2>클러스터링과 확장성</h2>
+                <p>대규모 데이터 처리를 위한 클러스터 구성과 확장 전략을 다룹니다.</p>
+                <ul class="topics">
+                    <li>클러스터 아키텍처</li>
+                    <li>로드 밸런싱 전략</li>
+                    <li>Site-to-Site 프로토콜</li>
+                    <li>고가용성 구성</li>
+                </ul>
+            </a>
+            
+            <a href="05_보안과_베스트프랙티스.html" class="nav-card">
+                <span class="card-number">5</span>
+                <h2>보안과 베스트 프랙티스</h2>
+                <p>엔터프라이즈급 보안 설정과 운영 환경에서의 베스트 프랙티스를 제공합니다.</p>
+                <ul class="topics">
+                    <li>인증 및 인가</li>
+                    <li>데이터 암호화</li>
+                    <li>감사 로깅</li>
+                    <li>운영 관리 가이드</li>
+                </ul>
+            </a>
+            
+            <a href="06_Docker로_NiFi_실습환경_구축.html" class="nav-card">
+                <span class="card-number">6</span>
+                <h2>Docker로 NiFi 실습환경 구축</h2>
+                <p>Docker를 활용하여 빠르고 효율적인 Apache NiFi 학습 환경을 구성하는 방법을 다룹니다.</p>
+                <ul class="topics">
+                    <li>Docker 기반 NiFi 설치</li>
+                    <li>Docker Compose 활용</li>
+                    <li>클러스터 환경 구축</li>
+                    <li>볼륨 마운트와 데이터 영속성</li>
+                </ul>
+            </a>
+        </div>
+        
+        <div class="footer">
+            <p>© 2024 Apache NiFi 학습 가이드. Apache NiFi는 Apache Software Foundation의 상표입니다.</p>
+            <div class="quick-links">
+                <a href="https://nifi.apache.org/" target="_blank">공식 웹사이트</a>
+                <a href="https://nifi.apache.org/docs.html" target="_blank">공식 문서</a>
+                <a href="https://github.com/apache/nifi" target="_blank">GitHub</a>
+                <a href="https://cwiki.apache.org/confluence/display/NIFI" target="_blank">Wiki</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
