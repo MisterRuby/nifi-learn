@@ -45,7 +45,7 @@ docker run --name nifi-lab \
 
 #### ConvertRecord
 
-1. Controller Services 에 CSV Reader Service 생성
+1. Controller Services 에 CSVReader 생성
 
 - Canvas 에서 마우스 우클릭 - Controller Services 에서 추가
 - CSVReader 검색 - 선택
@@ -56,7 +56,7 @@ docker run --name nifi-lab \
   - Schema Access Strategy: Use String Fields From Header
 - Enable 활성화
 
-2. Controller Services 에 JSON Writer Service 생성
+2. Controller Services 에 JsonRecordSetWriter 생성
 
 - Canvas 에서 마우스 우클릭 - Controller Services 에서 추가
 - JsonRecordSetWriter 검색 - 선택
