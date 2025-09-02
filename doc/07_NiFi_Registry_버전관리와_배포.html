@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NiFi Registry - 버전관리와 배포</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .breadcrumb {
+            color: #7f8c8d;
+            margin-bottom: 20px;
+        }
+        
+        .breadcrumb a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .content-section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        h3 {
+            color: #34495e;
+            font-size: 1.4em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        p {
+            color: #555;
+            margin-bottom: 15px;
+        }
+        
+        .registry-diagram {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+            color: white;
+        }
+        
+        .flow-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .flow-box {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .flow-arrow {
+            font-size: 2em;
+            margin: 0 20px;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow-x: auto;
+            position: relative;
+        }
+        
+        .code-block::before {
+            content: attr(data-language);
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            color: #95a5a6;
+        }
+        
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre;
+            display: block;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h4 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        
+        .info-box {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .info-box strong {
+            color: #0c5460;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .warning-box strong {
+            color: #856404;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .success-box strong {
+            color: #155724;
+        }
+        
+        .steps-container {
+            counter-reset: step-counter;
+        }
+        
+        .step-item {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 30px;
+        }
+        
+        .step-item::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .inline-code {
+            background: #ecf0f1;
+            color: #e74c3c;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .nav-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: transform 0.3s;
+        }
+        
+        .nav-button:hover {
+            transform: translateY(-3px);
+        }
+        
+        .version-flow {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .version-timeline {
+            position: relative;
+            padding-left: 40px;
+            margin: 20px 0;
+        }
+        
+        .version-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #667eea;
+        }
+        
+        .version-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .version-item::before {
+            content: '';
+            position: absolute;
+            left: -29px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 3px solid white;
+        }
+        
+        .architecture-box {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .architecture-flow {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+        
+        .arch-component {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 10px;
+            min-width: 180px;
+        }
+        
+        .arch-arrow {
+            font-size: 1.5em;
+            color: #667eea;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="breadcrumb">
+                <a href="index.html">홈</a> &gt; NiFi Registry - 버전관리와 배포
+            </div>
+            <h1>📚 NiFi Registry - 버전관리와 배포</h1>
+            <p>Apache NiFi Registry를 활용한 플로우 버전 관리, 협업, 그리고 배포 자동화</p>
+        </header>
+
+        <div class="content-section">
+            <h2>🎯 NiFi Registry란?</h2>
+            <p>
+                Apache NiFi Registry는 NiFi 데이터 플로우의 버전 관리를 위한 중앙 저장소입니다. 
+                Git과 같은 버전 관리 시스템처럼 플로우의 변경 사항을 추적하고, 이전 버전으로 롤백하며, 
+                팀 간 협업을 가능하게 합니다.
+            </p>
+            
+            <div class="registry-diagram">
+                <h3 style="color: white; margin-bottom: 20px;">🔄 NiFi Registry 워크플로우</h3>
+                <div class="flow-diagram">
+                    <div class="flow-box">
+                        <h4>개발 환경</h4>
+                        <p>NiFi Instance</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-box">
+                        <h4>Registry</h4>
+                        <p>버전 저장소</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-box">
+                        <h4>운영 환경</h4>
+                        <p>NiFi Instance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>✨ 주요 기능</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>📊 버전 관리</h4>
+                    <p>• 플로우 변경 사항 추적</p>
+                    <p>• 커밋 메시지와 함께 저장</p>
+                    <p>• 버전 간 차이점 비교</p>
+                    <p>• 이전 버전으로 롤백</p>
+                </div>
+                <div class="feature-card">
+                    <h4>👥 협업 지원</h4>
+                    <p>• 팀 간 플로우 공유</p>
+                    <p>• 중앙 집중식 관리</p>
+                    <p>• 액세스 제어</p>
+                    <p>• 변경 이력 추적</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🚀 배포 자동화</h4>
+                    <p>• 개발→테스트→운영 배포</p>
+                    <p>• CI/CD 파이프라인 통합</p>
+                    <p>• 환경별 구성 관리</p>
+                    <p>• 롤백 지원</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔐 보안</h4>
+                    <p>• HTTPS 지원</p>
+                    <p>• 사용자 인증/인가</p>
+                    <p>• Git 백엔드 지원</p>
+                    <p>• 감사 로깅</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🏗️ 아키텍처</h2>
+            
+            <div class="architecture-box">
+                <h3>NiFi Registry 구성 요소</h3>
+                <div class="architecture-flow">
+                    <div class="arch-component">
+                        <h4>Web UI</h4>
+                        <p>사용자 인터페이스</p>
+                    </div>
+                    <span class="arch-arrow">↔</span>
+                    <div class="arch-component">
+                        <h4>REST API</h4>
+                        <p>프로그래매틱 액세스</p>
+                    </div>
+                    <span class="arch-arrow">↔</span>
+                    <div class="arch-component">
+                        <h4>Storage</h4>
+                        <p>파일시스템/Git/DB</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3>핵심 개념</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>개념</th>
+                        <th>설명</th>
+                        <th>Git 유사 개념</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Bucket</strong></td>
+                        <td>플로우를 그룹화하는 최상위 컨테이너</td>
+                        <td>Repository</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flow</strong></td>
+                        <td>버전 관리되는 NiFi 프로세스 그룹</td>
+                        <td>Branch</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flow Snapshot</strong></td>
+                        <td>특정 시점의 플로우 상태</td>
+                        <td>Commit</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Version</strong></td>
+                        <td>플로우 스냅샷의 순차적 번호</td>
+                        <td>Commit Hash</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="content-section">
+            <h2>🚀 Registry 설치 및 설정</h2>
+            
+            <h3>Docker를 이용한 빠른 시작</h3>
+            <div class="code-block" data-language="bash">
+                <code># NiFi Registry 이미지 다운로드
+docker pull apache/nifi-registry:latest
+
+# Registry 실행 (보안 모드)
+docker run --name nifi-registry \
+  -p 18443:18443 \
+  -e SINGLE_USER_CREDENTIALS_USERNAME=admin \
+  -e SINGLE_USER_CREDENTIALS_PASSWORD=registryPassword123! \
+  -d \
+  apache/nifi-registry:latest
+
+# 접속 URL: https://localhost:18443/nifi-registry</code>
+            </div>
+
+            <h3>Docker Compose로 NiFi + Registry 통합 환경</h3>
+            <div class="code-block" data-language="yaml">
+                <code># docker-compose.yml
+version: '3.8'
+
+services:
+  nifi:
+    image: apache/nifi:latest
+    container_name: nifi
+    ports:
+      - "8443:8443"
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=nifiPassword123!
+      - NIFI_WEB_HTTPS_PORT=8443
+    volumes:
+      - nifi-conf:/opt/nifi/nifi-current/conf
+      - nifi-database:/opt/nifi/nifi-current/database_repository
+      - nifi-flowfile:/opt/nifi/nifi-current/flowfile_repository
+      - nifi-content:/opt/nifi/nifi-current/content_repository
+      - nifi-provenance:/opt/nifi/nifi-current/provenance_repository
+      - nifi-state:/opt/nifi/nifi-current/state
+      - nifi-logs:/opt/nifi/nifi-current/logs
+    networks:
+      - nifi-network
+    depends_on:
+      - nifi-registry
+    healthcheck:
+      test: ["CMD", "curl", "-k", "https://localhost:8443/nifi"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  nifi-registry:
+    image: apache/nifi-registry:latest
+    container_name: nifi-registry
+    ports:
+      - "18443:18443"
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=registryPassword123!
+      - NIFI_REGISTRY_WEB_HTTPS_PORT=18443
+    volumes:
+      - nifi-registry-database:/opt/nifi-registry/nifi-registry-current/database
+      - nifi-registry-flow-storage:/opt/nifi-registry/nifi-registry-current/flow_storage
+      - nifi-registry-logs:/opt/nifi-registry/nifi-registry-current/logs
+    networks:
+      - nifi-network
+    healthcheck:
+      test: ["CMD", "curl", "-k", "https://localhost:18443/nifi-registry"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  nifi-conf:
+  nifi-database:
+  nifi-flowfile:
+  nifi-content:
+  nifi-provenance:
+  nifi-state:
+  nifi-logs:
+  nifi-registry-database:
+  nifi-registry-flow-storage:
+  nifi-registry-logs:
+
+networks:
+  nifi-network:
+    driver: bridge</code>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 팁:</strong> NiFi Registry는 기본적으로 18080 포트를 사용하지만, 
+                NiFi 2.x부터는 보안이 기본이므로 18443 (HTTPS) 포트를 사용합니다.
+            </div>
+            
+            <div class="warning-box">
+                <strong>📌 볼륨 설정 참고:</strong>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>위 예제의 volumes는 Docker가 자동 관리하는 named volumes입니다</li>
+                    <li>호스트 경로를 지정하려면: <span class="inline-code">./data/nifi-conf:/opt/nifi/nifi-current/conf</span></li>
+                    <li>named volumes는 <span class="inline-code">docker volume ls</span>로 확인 가능합니다</li>
+                    <li>데이터는 <span class="inline-code">/var/lib/docker/volumes/</span>에 저장됩니다</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔗 NiFi와 Registry 연결</h2>
+            
+            <div class="steps-container">
+                <div class="step-item">
+                    <h3>Registry Client 추가</h3>
+                    <p>NiFi UI에서 Controller Settings → Registry Clients → Add Registry Client</p>
+                    <div class="code-block" data-language="properties">
+                        <code>Name: Production Registry
+URL: https://nifi-registry:18443
+Description: 운영 환경 플로우 버전 관리</code>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <h3>Bucket 생성</h3>
+                    <p>Registry UI에서 새 Bucket 생성</p>
+                    <div class="code-block" data-language="properties">
+                        <code>Bucket Name: production-flows
+Description: 운영 환경 플로우 저장소</code>
+                    </div>
+                </div>
+
+                <div class="step-item">
+                    <h3>Process Group 버전 관리 시작</h3>
+                    <p>NiFi에서 Process Group 우클릭 → Version → Start version control</p>
+                    <div class="code-block" data-language="properties">
+                        <code>Registry: Production Registry
+Bucket: production-flows
+Flow Name: ETL Pipeline v1
+Flow Description: 고객 데이터 ETL 파이프라인
+Version Comments: 초기 버전</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="success-box">
+                <strong>✅ 성공:</strong> Process Group이 이제 버전 관리됩니다. 
+                변경사항이 있으면 그룹 아이콘에 별표(*)가 표시됩니다.
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📝 버전 관리 워크플로우</h2>
+            
+            <div class="version-flow">
+                <h3>일반적인 버전 관리 프로세스</h3>
+                <div class="version-timeline">
+                    <div class="version-item">
+                        <h4>1. 초기 커밋</h4>
+                        <p>Process Group을 Registry에 처음 저장</p>
+                        <span class="inline-code">Version 1: Initial flow setup</span>
+                    </div>
+                    <div class="version-item">
+                        <h4>2. 변경 작업</h4>
+                        <p>프로세서 추가, 속성 변경, 연결 수정 등</p>
+                        <span class="inline-code">Local changes (uncommitted)</span>
+                    </div>
+                    <div class="version-item">
+                        <h4>3. 변경사항 커밋</h4>
+                        <p>Process Group 우클릭 → Version → Commit local changes</p>
+                        <span class="inline-code">Version 2: Added data validation</span>
+                    </div>
+                    <div class="version-item">
+                        <h4>4. 버전 비교</h4>
+                        <p>Show local changes로 변경사항 확인</p>
+                        <span class="inline-code">Diff: +3 processors, -1 connection</span>
+                    </div>
+                    <div class="version-item">
+                        <h4>5. 롤백 (필요시)</h4>
+                        <p>Revert local changes 또는 Change version</p>
+                        <span class="inline-code">Reverted to Version 1</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3>버전 관리 명령어</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>작업</th>
+                        <th>UI 메뉴</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>버전 관리 시작</td>
+                        <td>Start version control</td>
+                        <td>Process Group을 Registry에 등록</td>
+                    </tr>
+                    <tr>
+                        <td>변경사항 커밋</td>
+                        <td>Commit local changes</td>
+                        <td>로컬 변경사항을 새 버전으로 저장</td>
+                    </tr>
+                    <tr>
+                        <td>변경사항 보기</td>
+                        <td>Show local changes</td>
+                        <td>현재 버전과 로컬의 차이점 표시</td>
+                    </tr>
+                    <tr>
+                        <td>변경사항 되돌리기</td>
+                        <td>Revert local changes</td>
+                        <td>모든 로컬 변경사항 취소</td>
+                    </tr>
+                    <tr>
+                        <td>버전 변경</td>
+                        <td>Change version</td>
+                        <td>다른 버전으로 전환</td>
+                    </tr>
+                    <tr>
+                        <td>버전 관리 중지</td>
+                        <td>Stop version control</td>
+                        <td>Registry 연결 해제</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="content-section">
+            <h2>🔄 플로우 가져오기/내보내기</h2>
+            
+            <h3>Registry에서 플로우 가져오기</h3>
+            <div class="steps-container">
+                <div class="step-item">
+                    <h3>Canvas에서 Process Group 추가</h3>
+                    <div class="code-block" data-language="text">
+                        <code>1. NiFi Canvas 빈 공간 우클릭
+2. Add Process Group 선택
+3. "Import from Registry" 옵션 선택
+4. Registry, Bucket, Flow 선택
+5. Version 선택 (latest 또는 특정 버전)</code>
+                    </div>
+                </div>
+            </div>
+
+            <h3>다른 환경으로 플로우 배포</h3>
+            <div class="code-block" data-language="bash">
+                <code># REST API를 통한 플로우 export
+curl -X GET \
+  "https://registry-server:18443/nifi-registry-api/buckets/{bucketId}/flows/{flowId}/versions/{version}/export" \
+  -H "Authorization: Bearer $TOKEN" \
+  -o flow-export.json
+
+# 다른 NiFi 인스턴스로 import
+curl -X POST \
+  "https://nifi-server:8443/nifi-api/process-groups/{pgId}/process-groups" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @flow-export.json</code>
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ 주의사항:</strong> 
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>민감한 속성(패스워드 등)은 export되지 않음</li>
+                    <li>Controller Service는 별도로 구성 필요</li>
+                    <li>환경별 변수는 Parameter Context로 관리</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔧 고급 설정</h2>
+            
+            <h3>Git 백엔드 설정</h3>
+            <div class="code-block" data-language="yaml">
+                <code># providers.xml
+&lt;flowPersistenceProvider&gt;
+    &lt;class&gt;org.apache.nifi.registry.provider.flow.git.GitFlowPersistenceProvider&lt;/class&gt;
+    &lt;property name="Flow Storage Directory"&gt;./flow_storage&lt;/property&gt;
+    &lt;property name="Remote To Push"&gt;origin&lt;/property&gt;
+    &lt;property name="Remote Access User"&gt;git-user&lt;/property&gt;
+    &lt;property name="Remote Access Password"&gt;git-password&lt;/property&gt;
+&lt;/flowPersistenceProvider&gt;</code>
+            </div>
+
+            <h3>데이터베이스 백엔드 설정</h3>
+            <div class="code-block" data-language="properties">
+                <code># nifi-registry.properties
+nifi.registry.db.url=jdbc:postgresql://localhost:5432/nifi_registry
+nifi.registry.db.driver.class=org.postgresql.Driver
+nifi.registry.db.username=nifi
+nifi.registry.db.password=nifi123
+nifi.registry.db.max.connections=10</code>
+            </div>
+
+            <h3>LDAP 인증 설정</h3>
+            <div class="code-block" data-language="xml">
+                <code># identity-providers.xml
+&lt;provider&gt;
+    &lt;identifier&gt;ldap-provider&lt;/identifier&gt;
+    &lt;class&gt;org.apache.nifi.registry.security.ldap.LdapIdentityProvider&lt;/class&gt;
+    &lt;property name="Authentication Strategy"&gt;SIMPLE&lt;/property&gt;
+    &lt;property name="Manager DN"&gt;cn=admin,dc=example,dc=com&lt;/property&gt;
+    &lt;property name="Manager Password"&gt;admin-password&lt;/property&gt;
+    &lt;property name="Url"&gt;ldap://ldap-server:389&lt;/property&gt;
+    &lt;property name="User Search Base"&gt;ou=users,dc=example,dc=com&lt;/property&gt;
+    &lt;property name="User Search Filter"&gt;(uid={0})&lt;/property&gt;
+&lt;/provider&gt;</code>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🚀 CI/CD 통합</h2>
+            
+            <h3>Jenkins Pipeline 예제</h3>
+            <div class="code-block" data-language="groovy">
+                <code>pipeline {
+    agent any
+    
+    environment {
+        REGISTRY_URL = 'https://nifi-registry:18443'
+        NIFI_DEV = 'https://nifi-dev:8443'
+        NIFI_PROD = 'https://nifi-prod:8443'
+    }
+    
+    stages {
+        stage('Export from Dev') {
+            steps {
+                script {
+                    // Dev 환경에서 최신 플로우 export
+                    sh """
+                        curl -X GET \
+                          "${REGISTRY_URL}/nifi-registry-api/buckets/dev/flows/etl-flow/versions/latest/export" \
+                          -H "Authorization: Bearer ${REGISTRY_TOKEN}" \
+                          -o flow-latest.json
+                    """
+                }
+            }
+        }
+        
+        stage('Validate Flow') {
+            steps {
+                script {
+                    // 플로우 검증 로직
+                    sh 'python validate_flow.py flow-latest.json'
+                }
+            }
+        }
+        
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    // Production 환경으로 배포
+                    sh """
+                        curl -X POST \
+                          "${NIFI_PROD}/nifi-api/process-groups/root/process-groups" \
+                          -H "Authorization: Bearer ${NIFI_TOKEN}" \
+                          -H "Content-Type: application/json" \
+                          -d @flow-latest.json
+                    """
+                }
+            }
+        }
+    }
+}</code>
+            </div>
+
+            <h3>GitLab CI/CD 예제</h3>
+            <div class="code-block" data-language="yaml">
+                <code># .gitlab-ci.yml
+stages:
+  - test
+  - deploy
+
+variables:
+  REGISTRY_URL: "https://nifi-registry:18443"
+  
+test-flow:
+  stage: test
+  script:
+    - |
+      # 플로우 다운로드 및 테스트
+      curl -X GET \
+        "$REGISTRY_URL/nifi-registry-api/buckets/$BUCKET_ID/flows/$FLOW_ID/versions/latest" \
+        -H "Authorization: Bearer $REGISTRY_TOKEN" \
+        -o flow.json
+    - python test_flow.py flow.json
+  only:
+    - merge_requests
+
+deploy-to-prod:
+  stage: deploy
+  script:
+    - |
+      # Production 배포
+      curl -X PUT \
+        "$NIFI_PROD_URL/nifi-api/versions/process-groups/$PG_ID" \
+        -H "Authorization: Bearer $NIFI_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"version": {"version": "latest"}}'
+  only:
+    - main
+  when: manual</code>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>📊 모니터링과 관리</h2>
+            
+            <h3>Registry API를 활용한 모니터링</h3>
+            <div class="code-block" data-language="python">
+                <code>import requests
+import json
+from datetime import datetime
+
+class NiFiRegistryMonitor:
+    def __init__(self, registry_url, token):
+        self.registry_url = registry_url
+        self.headers = {'Authorization': f'Bearer {token}'}
+    
+    def get_all_buckets(self):
+        """모든 bucket 정보 조회"""
+        response = requests.get(
+            f"{self.registry_url}/nifi-registry-api/buckets",
+            headers=self.headers
+        )
+        return response.json()
+    
+    def get_flow_versions(self, bucket_id, flow_id):
+        """특정 플로우의 모든 버전 조회"""
+        response = requests.get(
+            f"{self.registry_url}/nifi-registry-api/buckets/{bucket_id}/flows/{flow_id}/versions",
+            headers=self.headers
+        )
+        return response.json()
+    
+    def compare_versions(self, bucket_id, flow_id, version1, version2):
+        """두 버전 간 차이점 비교"""
+        v1 = self.get_flow_version(bucket_id, flow_id, version1)
+        v2 = self.get_flow_version(bucket_id, flow_id, version2)
+        
+        # 변경사항 분석
+        changes = {
+            'processors_added': [],
+            'processors_removed': [],
+            'connections_changed': []
+        }
+        
+        # 비교 로직 구현
+        return changes
+    
+    def generate_report(self):
+        """Registry 사용 현황 리포트 생성"""
+        buckets = self.get_all_buckets()
+        report = {
+            'timestamp': datetime.now().isoformat(),
+            'total_buckets': len(buckets),
+            'flows': []
+        }
+        
+        for bucket in buckets:
+            flows = self.get_bucket_flows(bucket['identifier'])
+            for flow in flows:
+                versions = self.get_flow_versions(
+                    bucket['identifier'], 
+                    flow['identifier']
+                )
+                report['flows'].append({
+                    'name': flow['name'],
+                    'bucket': bucket['name'],
+                    'version_count': len(versions),
+                    'last_modified': flow['modifiedTimestamp']
+                })
+        
+        return report
+
+# 사용 예
+monitor = NiFiRegistryMonitor('https://registry:18443', 'your-token')
+report = monitor.generate_report()
+print(json.dumps(report, indent=2))</code>
+            </div>
+
+            <h3>버전 정리 스크립트</h3>
+            <div class="code-block" data-language="bash">
+                <code>#!/bin/bash
+# cleanup-old-versions.sh
+
+REGISTRY_URL="https://nifi-registry:18443"
+KEEP_VERSIONS=10  # 유지할 버전 수
+
+# 모든 플로우의 오래된 버전 정리
+for bucket in $(curl -s "$REGISTRY_URL/nifi-registry-api/buckets" | jq -r '.[].identifier'); do
+    for flow in $(curl -s "$REGISTRY_URL/nifi-registry-api/buckets/$bucket/flows" | jq -r '.[].identifier'); do
+        versions=$(curl -s "$REGISTRY_URL/nifi-registry-api/buckets/$bucket/flows/$flow/versions" | jq -r '.[].version')
+        
+        # 최신 N개 버전만 유지
+        for version in $(echo "$versions" | tail -n +$((KEEP_VERSIONS+1))); do
+            echo "Deleting version $version of flow $flow"
+            curl -X DELETE \
+              "$REGISTRY_URL/nifi-registry-api/buckets/$bucket/flows/$flow/versions/$version" \
+              -H "Authorization: Bearer $TOKEN"
+        done
+    done
+done</code>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💡 베스트 프랙티스</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>📝 버전 관리 전략</h4>
+                    <p>• 의미 있는 커밋 메시지 작성</p>
+                    <p>• 작은 단위로 자주 커밋</p>
+                    <p>• 기능별로 Process Group 분리</p>
+                    <p>• 테스트 완료 후 커밋</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🏗️ 환경 관리</h4>
+                    <p>• Dev/Test/Prod 별도 Bucket</p>
+                    <p>• Parameter Context 활용</p>
+                    <p>• 환경별 설정 분리</p>
+                    <p>• 자동 배포 파이프라인 구축</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔐 보안</h4>
+                    <p>• HTTPS 사용 필수</p>
+                    <p>• 역할 기반 접근 제어</p>
+                    <p>• 민감정보 별도 관리</p>
+                    <p>• 정기적인 백업</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📊 모니터링</h4>
+                    <p>• 버전 변경 이력 추적</p>
+                    <p>• 사용자 활동 로깅</p>
+                    <p>• 스토리지 사용량 모니터링</p>
+                    <p>• 정기적인 버전 정리</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>🔍 문제 해결</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>문제</th>
+                        <th>원인</th>
+                        <th>해결방법</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Registry 연결 실패</td>
+                        <td>네트워크 또는 인증 문제</td>
+                        <td>
+                            1. Registry URL 확인 (HTTPS 포트)<br>
+                            2. 인증서 검증 설정 확인<br>
+                            3. 방화벽 규칙 확인
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>버전 충돌</td>
+                        <td>동시 수정으로 인한 충돌</td>
+                        <td>
+                            1. Show local changes로 차이점 확인<br>
+                            2. 필요시 로컬 변경사항 백업<br>
+                            3. Revert 후 최신 버전에서 재작업
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>플로우 import 실패</td>
+                        <td>버전 호환성 또는 권한 문제</td>
+                        <td>
+                            1. NiFi와 플로우 버전 호환성 확인<br>
+                            2. 필요한 Controller Service 사전 설정<br>
+                            3. 사용자 권한 확인
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>스토리지 부족</td>
+                        <td>많은 버전 축적</td>
+                        <td>
+                            1. 오래된 버전 정리<br>
+                            2. Git 백엔드 사용 고려<br>
+                            3. 스토리지 용량 증설
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="content-section">
+            <h2>📚 추가 리소스</h2>
+            
+            <div class="info-box">
+                <strong>참고 자료:</strong>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>공식 문서: <a href="https://nifi.apache.org/registry.html" style="color: #3498db;">Apache NiFi Registry Documentation</a></li>
+                    <li>REST API 문서: <a href="https://nifi.apache.org/registry-api/" style="color: #3498db;">NiFi Registry REST API</a></li>
+                    <li>GitHub: <a href="https://github.com/apache/nifi-registry" style="color: #3498db;">Apache NiFi Registry Repository</a></li>
+                    <li>커뮤니티: <a href="https://nifi.apache.org/mailing_lists.html" style="color: #3498db;">NiFi Mailing Lists</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="navigation-buttons">
+            <a href="06_Docker로_NiFi_실습환경_구축.html" class="nav-button">← 이전: Docker로 NiFi 실습환경 구축</a>
+            <a href="index.html" class="nav-button">목차로 돌아가기 →</a>
+        </div>
+    </div>
+</body>
+</html>
