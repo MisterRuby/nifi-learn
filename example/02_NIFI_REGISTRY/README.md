@@ -50,6 +50,81 @@ docker-compose logs -f nifi-registry
   - Password: `password1234`
 - **Registry**: 별도 인증 없음 (HTTP 모드)
 
+## 📚 버전 관리 개념
+
+### Process Group 단위 버전 관리
+
+NiFi Registry는 **Process Group 단위로 버전을 관리**합니다. 개별 Processor나 Connection이 아닌 Process Group을 하나의 버전 관리 단위로 사용합니다.
+
+#### 버전 관리 가능/불가능 항목
+
+✅ **버전 관리 가능**
+- Process Group (프로세스 그룹)
+- 중첩된 Process Group (각각 독립적으로 관리)
+
+❌ **버전 관리 불가능**
+- 개별 Processor
+- 개별 Connection
+- Root Canvas (최상위 캔버스)
+
+#### 버전 관리 구조
+
+```
+NiFi Registry
+└── Bucket (예: dev-flows)
+    ├── Flow 1 (Process Group: ETL Pipeline)
+    │   ├── Version 1 - 초기 버전
+    │   ├── Version 2 - PutFile 추가
+    │   └── Version 3 - 오류 처리 추가
+    └── Flow 2 (Process Group: Data Validation)
+        ├── Version 1 - 초기 검증 로직
+        └── Version 2 - 추가 검증 규칙
+```
+
+#### Process Group 버전에 포함되는 내용
+
+- ✅ 모든 Processor와 설정값
+- ✅ Connection (프로세서 간 연결)
+- ✅ Controller Service 설정
+- ✅ Variables (프로세스 그룹 변수)
+- ✅ 중첩된 Process Group (참조 형태)
+- ❌ 실제 데이터
+- ❌ 민감한 정보 (패스워드 등)
+
+#### 독립적 버전 관리 예시
+
+```
+Main Process Group (v3)
+├── Sub Process Group A (v5)  # 독립적 버전 관리
+├── Sub Process Group B (v2)  # 독립적 버전 관리
+└── Sub Process Group C       # 버전 관리 안 함
+```
+
+#### 왜 Process Group 단위인가?
+
+1. **모듈화**: 관련 프로세서들을 논리적 단위로 그룹화
+2. **재사용성**: 다른 NiFi 인스턴스에서 Import 가능
+3. **독립성**: 각 팀이 자신의 Process Group만 관리
+4. **유연성**: 전체 플로우 중 일부만 선택적 버전 관리
+
+#### 실무 구조 예시
+
+```
+Root Canvas (버전 관리 X)
+├── [PG] 데이터 수집 (v10)        # 팀 A가 관리
+│   ├── GetFile
+│   ├── GetHTTP
+│   └── ConsumeKafka
+├── [PG] 데이터 변환 (v7)         # 팀 B가 관리
+│   ├── ConvertRecord
+│   ├── JoltTransformJSON
+│   └── ReplaceText
+├── [PG] 데이터 저장 (v5)         # 팀 C가 관리
+│   ├── PutDatabaseRecord
+│   └── PutHDFS
+└── 임시 테스트 Processor          # 버전 관리 안 함
+```
+
 ## 📝 실습 과정
 
 ### Step 1: Registry Client 설정
@@ -268,23 +343,45 @@ git commit -m "update: ETL 파이프라인 PutFile 프로세서 추가"
 git clone <repository-url>
 cd <project-directory>/example/02_NIFI_REGISTRY
 
-# Docker 환경 시작
+# Docker 환경 시작 (registry-data가 이미 있으므로 Registry 자동 복원)
 docker-compose up -d
 
 # Registry UI에서 저장된 플로우들 확인
 # http://localhost:18080/nifi-registry
+# 모든 버전 이력이 그대로 복원됨
 ```
 
-#### 5. Registry 데이터 백업 및 복원
+##### NiFi에 Process Group 복원하기
+
+Registry는 복원되지만 **NiFi Canvas는 비어있습니다**. Process Group을 복원하려면:
+
+1. **NiFi UI 접속** (https://localhost:8443/nifi)
+2. **Registry Client 설정** (Step 1 참조)
+3. **Process Group Import**:
+   - Canvas 빈 공간 드래그 → Add Process Group
+   - "Import from Registry" 선택
+   - Registry: Local Registry
+   - Bucket: 복원된 버킷 선택
+   - Flow: 원하는 플로우 선택
+   - Version: 최신 버전 또는 특정 버전 선택
+4. **필요한 모든 Process Group 반복 Import**
+
+💡 **참고**: Registry는 플로우의 "저장소" 역할만 합니다. 실제 실행 중인 Process Group은 NiFi에서 수동으로 Import해야 합니다.
+
+#### 5. 추가 백업 옵션 (선택사항)
+
+Git 외에 추가로 백업이 필요한 경우:
 
 ```bash
-# 백업 (현재 상태를 압축)
+# 특정 시점 백업 (압축 파일로 저장)
 tar -czf registry-backup-$(date +%Y%m%d).tar.gz registry-data/
 
-# 복원 (백업 파일에서 복원)
+# 압축 파일에서 복원
 tar -xzf registry-backup-20240102.tar.gz
 docker-compose restart nifi-registry
 ```
+
+**💡 Git으로 관리 중이라면**: `git clone` → `docker-compose up -d`만으로 완전한 복원이 가능합니다. 별도 백업/복원 작업이 필요 없습니다.
 
 ### ⚠️ 주의사항
 
